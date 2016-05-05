@@ -1,0 +1,231 @@
+#+TITLE: Evolution Of A Haskell Programmer
+#+AUTHOR: Aditya Siram
+#+OPTIONS: H:1 toc:f
+#+LATEX_CLASS: beamer
+#+LATEX_listingsCLASS_OPTIONS: [presentation]
+#+BEAMER_THEME: Madrid
+
+* What
+* Freshman
+[[file:freshman.png]]
+#+BEGIN_SRC haskell
+  (3 * (2 * (1 * 1)))
+#+END_SRC
+* Foldr
+[[file:senior-foldr.png]]
+#+BEGIN_SRC haskell
+(1 * (2 * (3 * 1)))
+#+END_SRC
+* Foldl
+
+[[file:senior-foldl.png]]
+#+BEGIN_SRC haskell
+(((1 * 1) * 2) * 3)
+#+END_SRC
+* Foldr As Foldl
+[[file:foldr-as-foldl.png]]
+#+BEGIN_SRC haskell
+  fac n = foldr (\x g -> (\n -> g (x * n))) id [1 .. n] 1
+  (\n -> (\n -> (\n -> id (3 * n)) (2 * n)) (1 * n)) 1
+  (\n -> (\n -> id (3 * n)) (2 * n)) (1 * 1)
+  (\n -> id (3 * n)) ((1 * 1) * 2)
+  id (((1 * 1) * 2) *3)
+  (((1 * 1) * 2) *3)
+#+END_SRC
+* Scanl
+[[file:scanl.png]]
+#+BEGIN_EXAMPLE
+  facs = scanl (*) 1 [1 ..]
+  facs = [1,1 * 1, <-- * 2, <-- * 3, ...]
+                                  ^
+                                  |
+  facs !! 3 = --------------------+
+#+END_EXAMPLE
+* Accum
+[[file:accum.png]]
+#+BEGIN_EXAMPLE
+  fac 3
+  facAnn (3 * 1)         2
+  facAnn (3 * 1 * 2)     1
+  facAnn (3 * 1 * 2 * 1) 0
+  = (3 * 1 * 2 * 1)
+#+END_EXAMPLE
+* Continuation
+[[file:continuation.png]]
+#+BEGIN_EXAMPLE
+  fac 3
+  facCps (id . (3 *)) 2
+  facCps ((id . (3 *)) . (2 *)) 1
+  facCps (((id . (3 *)) . (2 *)) (1 *))
+  (((id . (3 *)) . (2 *)) . (1 *)) 1
+  id (((1 * 1) * 2) * 3)
+#+END_EXAMPLE
+* Knot
+[[file:knot.png]]
+* Knot
+#+BEGIN_EXAMPLE
+  y f = f (y f)
+      = f (f (y f))
+      = f (f (f ...
+
+  fac = y (\f n -> if (n == 0) then 1 else n * f (n - 1)))
+
+  fac 3
+   = y (\f n -> ... 3 * f 2)
+   = 3 * (y (\f n -> ... 2 * f 1))
+   = 3 * 2 * (y (\f n -> ... 1 * f 0))
+   = 3 * 2 * 1 * (y (\f n -> if (n == 0) then 1 ...))
+   = 3 * 2 * 1 * 1
+
+#+END_EXAMPLE
+* Interpretive - Grammar
+#+ATTR_LATEX: :width 0.6\linewidth
+[[file:interpretive-grammar.png]]
+* Interpretive - Projection
+[[file:interpretive-projection.png]]
+* Interpretive - Binary Op 1
+[[file:interpretive-binop-1.png]]
+* Interpretive - Binary Op 2
+[[file:interpretive-binop2.png]]
+* Interpretive - Environment
+[[file:interpretive-environment.png]]
+* Interpretive - Eval
+[[file:interpretive-eval.png]]
+* Interpretive - Runner
+[[file:interpretive-runner.png]]
+* Peano
+[[file:beginning-graduate-peano.png]]
+#+BEGIN_SRC haskell
+  Zero               -- 0
+  (Succ Zero)        -- 1
+  (Succ (Succ Zero)) -- 2
+#+END_SRC
+* Peano plus
+#+BEGIN_SRC haskell
+  plus (Succ Zero) (Succ (Succ Zero)) =
+    Succ (iter (Succ Zero) (Succ Zero))
+         Succ (iter (Succ Zero) Zero)
+               Succ Zero
+#+END_SRC
+* Peano Fac
+[[file:beginning-graduate-fac.png]]
+* Peano Fac
+#+BEGIN_EXAMPLE
+  fac  = snd . iter (one, one) (\(a,b) -> (Succ a, mult a b))
+  => (\(a,b) -> (Succ a, mult a b)
+      (\(a,b) -> (Succ a, mult a b)
+       (\(a,b) -> (Succ a, mult a b)
+        (Succ Zero, Succ Zero)
+  => (\(a,b) -> (Succ a, mult a b)
+      (\(a,b) -> (Succ a, mult a b)
+       (Succ (Succ Zero)), (Succ Zero)
+  => (\(a,b) -> (Succ a, mult a b)
+      (Succ (Succ Zero), Succ Zero)
+  => (_ , (Succ ... Zero)) -- first is unevaluated!
+  => (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))
+#+END_EXAMPLE
+* Peano Fac
+#+BEGIN_EXAMPLE
+  fac' = primrec (Succ Zero) (mult . Succ)
+  => (mult (Succ (Succ (Succ Zer0)))
+      (mult (Succ (Succ Zero)))
+        (mult (Succ Zero))
+           (Succ Zero)
+#+END_EXAMPLE
+* Origamist Fold
+[[file:origamist-fold.png]]
+#+BEGIN_SRC haskell
+  prod = fold (*) 1 [3,2,1]
+  => 3 * (fold (*) 1 [2,1])
+  => 3 * 2 * (fold (*) 1 [1])
+  => 3 * 2 * 1 * 1
+#+END_SRC
+* Origamist Unfold
+[[file:origamist-unfold.png]]
+* Origamist Unfold
+#+BEGIN_SRC haskell
+  downFrom 3 = unfold (== 0) id pred
+  => (id 3) : (unfold (== 0) id 2)
+  => (id 3) : (id 2) : (unfold (== 0) id 1)
+  => (id 3) : (id 2) : (id 1) : []
+  => [3,2,1]
+#+END_SRC
+* Origamist Fac
+[[file:origamist-fac.png]]
+* Cartesian Cata
+[[file:cartesianally-cata.png]]
+* Cartesian Ana
+#+BEGIN_SRC haskell
+  uncurry f (a,b)= f a b
+  prod = cata (1, uncurry (*)) [3,2,1]
+  => (uncurry (*) (3,
+      (uncurry (*) (2,
+       (uncurry (*) (1, 1)))
+#+END_SRC
+* Cartesian Ana
+[[file:cartesianally-ana.png]]
+
+[[file:cartesianally-pair.png]]
+* Cartesian Ana
+#+BEGIN_EXAMPLE
+  pair (f,g) (x,y) = (f x, g y)
+  ana f = either (const []) (cons . pair (id, ana f)) . f
+  cons = uncurry (:)
+  ana uncount 3
+  => (uncurry (:) (3,
+       uncurry (:) (2,
+        uncurry (:) (1, (const [])))))
+  => [3,2,1]
+#+END_EXAMPLE
+* Cartesian Hylo
+[[file:cartesianally-hylo.png]]
+#+BEGIN_EXAMPLE
+hylo = fold . unfold
+#+END_EXAMPLE
+* Cartesian Fac
+[[file:cartesianally-fac.png]]
+* Phd Mu
+[[file:phd-mu.png]]
+#+BEGIN_SRC haskell
+  -- notice the similarity
+  newtype Mu f = Mu (f (Mu f))
+  y f = y (f y)
+
+#+END_SRC
+* Phd Cata
+[[file:phd-cata-ana.png]]
+#+BEGIN_EXAMPLE
+  -- injection/projection
+  out (Mu x) = x
+  in  x      = Mu x
+
+  -- morphisms
+  cata phi = phi . fmap (cata phi) . out
+  ana  psi = in .  fmap (ana  psi) . psi
+#+END_EXAMPLE
+* Phd Nats
+[[file:phd-nelim.png]]
+#+BEGIN_EXAMPLE
+  Mu (Succ (Mu Succ (Mu Succ (Mu Zero)))) -- 3
+#+END_EXAMPLE
+* Phd Lists
+[[file:phd-lists.png]]
+#+BEGIN_EXAMPLE
+  Mu (Cons 3 (Mu (Cons 2 (Mu (Cons 1 (Mu Nil)))))) -- [3,2,1]
+#+END_EXAMPLE
+* Phd Nats
+[[file:phd-suck.png]]
+#+BEGIN_EXAMPLE
+  plus (Mu (Succ (Mu (Succ (Mu Zero))))) (Mu (Succ (Mu Zero)))
+  =>   (in . Succ . in . Succ)           (Mu (Succ (Mu Zero)))
+  =>   (Mu (Succ (Mu (Succ (Mu (Succ (Mu Zero)))))))
+#+END_EXAMPLE
+* Phd Fac
+[[file:phd-fac.png]]
+#+BEGIN_EXAMPLE
+  fac (Mu (Succ (Mu (Succ (Mu (Succ (Mu Zero))))))) = 6
+#+END_EXAMPLE
+* Product
+ [[file:tenured.png]]
+* Resources
+ http://www.willamette.edu/~fruehr/haskell/evolution.html?
